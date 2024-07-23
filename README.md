@@ -1,0 +1,2 @@
+# Dns_debian
+Un serveur DNS est crucial pour le fonctionnement d'Internet, permettant la traduction des noms de domaine en adresses IP, facilitant la navigation, équilibrant la charge, assurant la sécurité des requêtes et gérant les services de courrier électronique. Sans DNS, les utilisateurs devraient se souvenir des adresses IP numériques de chaque site web, ce qui rendrait Internet beaucoup moins convivial et fonctionnel.
