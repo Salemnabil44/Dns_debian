@@ -1,0 +1,147 @@
+# Installation et Configuration d'un Serveur DNS sur Debian
+
+## Prérequis
+- Une machine Debian avec des privilèges root ou sudo.
+- Une adresse IP statique pour la machine Debian.
+
+## Étape 1 : Installation de BIND9
+
+1. **Mettre à jour le système et installer BIND9** :
+    ```bash
+    sudo apt-get update
+    sudo apt-get install bind9 bind9utils bind9-doc
+    ```
+
+## Étape 2 : Configuration de la Zone DNS
+
+1. **Éditer le fichier de configuration BIND** :
+    Ouvrez le fichier `/etc/bind/named.conf.local` :
+    ```bash
+    sudo nano /etc/bind/named.conf.local
+    ```
+
+2. **Ajouter la configuration de la zone** :
+    Ajoutez les lignes suivantes pour définir la zone `wilders.lan` :
+    ```plaintext
+    zone "wilders.lan" {
+        type master;
+        file "/etc/bind/zones/db.wilders.lan";
+    };
+
+    zone "0.168.192.in-addr.arpa" {
+        type master;
+        file "/etc/bind/zones/db.192.168.0";
+    };
+    ```
+
+3. **Créer le répertoire pour les fichiers de zone** :
+    ```bash
+    sudo mkdir -p /etc/bind/zones
+    ```
+
+4. **Créer et configurer le fichier de zone directe** :
+    Créez le fichier `/etc/bind/zones/db.wilders.lan` :
+    ```bash
+    sudo nano /etc/bind/zones/db.wilders.lan
+    ```
+
+    Ajoutez les lignes suivantes :
+    ```plaintext
+    ;
+    ; BIND data file for wilders.lan
+    ;
+    $TTL    604800
+    @       IN      SOA     ns.wilders.lan. admin.wilders.lan. (
+                              2         ; Serial
+                          604800         ; Refresh
+                           86400         ; Retry
+                         2419200         ; Expire
+                          604800 )       ; Negative Cache TTL
+    ;
+    @       IN      NS      ns.wilders.lan.
+    @       IN      A       192.168.0.1
+    ns      IN      A       192.168.0.1
+
+    ; Enregistrements A
+    www     IN      A       192.168.0.2
+    server  IN      A       192.168.0.3
+
+    ; Enregistrements CNAME
+    alias   IN      CNAME   www
+    ```
+
+5. **Créer et configurer le fichier de zone inverse** :
+    Créez le fichier `/etc/bind/zones/db.192.168.0` :
+    ```bash
+    sudo nano /etc/bind/zones/db.192.168.0
+    ```
+
+    Ajoutez les lignes suivantes :
+    ```plaintext
+    ;
+    ; BIND reverse data file for 192.168.0.0
+    ;
+    $TTL    604800
+    @       IN      SOA     ns.wilders.lan. admin.wilders.lan. (
+                              1         ; Serial
+                          604800         ; Refresh
+                           86400         ; Retry
+                         2419200         ; Expire
+                          604800 )       ; Negative Cache TTL
+    ;
+    @       IN      NS      ns.wilders.lan.
+    1       IN      PTR     ns.wilders.lan.
+    2       IN      PTR     www.wilders.lan.
+    3       IN      PTR     server.wilders.lan.
+    ```
+
+## Étape 3 : Vérification et Redémarrage de BIND9
+
+1. **Vérifier la configuration** :
+    Utilisez la commande `named-checkconf` pour vérifier la configuration générale de BIND :
+    ```bash
+    sudo named-checkconf
+    ```
+
+    Utilisez la commande `named-checkzone` pour vérifier les fichiers de zone :
+    ```bash
+    sudo named-checkzone wilders.lan /etc/bind/zones/db.wilders.lan
+    sudo named-checkzone 0.168.192.in-addr.arpa /etc/bind/zones/db.192.168.0
+    ```
+
+2. **Redémarrer le service BIND9** :
+    ```bash
+    sudo systemctl restart bind9
+    sudo systemctl enable bind9
+    ```
+
+## Étape 4 : Configuration du Client DNS
+
+1. **Configurer les clients pour utiliser le serveur DNS** :
+    Sur les machines clientes, modifiez le fichier `/etc/resolv.conf` pour utiliser l'adresse IP du serveur DNS :
+    ```plaintext
+    nameserver 192.168.0.1
+    ```
+
+## Étape 5 : Tests de Validation
+
+1. **Test de résolution d'adresse IP (A records)** :
+    ```bash
+    dig @192.168.0.1 www.wilders.lan
+    dig @192.168.0.1 server.wilders.lan
+    ```
+
+2. **Test de résolution d'alias (CNAME records)** :
+    ```bash
+    dig @192.168.0.1 alias.wilders.lan
+    ```
+
+3. **Test de résolution inverse** :
+    ```bash
+    dig @192.168.0.1 -x 192.168.0.2
+    dig @192.168.0.1 -x 192.168.0.3
+    ```
+
+## Conclusion
+
+En suivant ces étapes, vous avez configuré un serveur DNS sur Debian avec une zone de recherche nommée `wilders.lan`, supportant les enregistrements A et CNAME, et vous avez validé la configuration avec des tests appropriés.
